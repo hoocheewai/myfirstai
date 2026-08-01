@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Symptoms vs Problems — Card Sorting Challenge</title>
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --panel:#ffffff;
+      --ink:#183047;
+      --muted:#64748b;
+      --line:#dbe4ee;
+      --accent:#2563eb;
+      --accent-soft:#dbeafe;
+      --problem:#7c3aed;
+      --problem-soft:#ede9fe;
+      --symptom:#ea580c;
+      --symptom-soft:#ffedd5;
+      --good:#15803d;
+      --good-soft:#dcfce7;
+      --bad:#b91c1c;
+      --bad-soft:#fee2e2;
+      --shadow:0 16px 40px rgba(30,64,175,.10);
+      --radius:20px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(37,99,235,.12), transparent 34%),
+        radial-gradient(circle at bottom right, rgba(124,58,237,.10), transparent 30%),
+        var(--bg);
+    }
+    button{font:inherit}
+    .app{max-width:1480px;margin:0 auto;padding:24px}
+    .hero{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:20px;
+      padding:26px 28px;border-radius:28px;background:linear-gradient(135deg,#0f172a,#1e3a8a 58%,#2563eb);
+      color:#fff;box-shadow:var(--shadow);margin-bottom:18px;
+    }
+    .hero h1{margin:0 0 8px;font-size:clamp(1.65rem,3vw,2.65rem);line-height:1.06}
+    .hero p{margin:0;color:#dbeafe;max-width:760px;line-height:1.55}
+    .badge{white-space:nowrap;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);padding:10px 14px;border-radius:999px;font-weight:800}
+    .toolbar{
+      display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px;
+    }
+    .metric,.controls{
+      background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px 16px;box-shadow:0 8px 22px rgba(15,23,42,.05)
+    }
+    .metric small{display:block;color:var(--muted);font-weight:700;margin-bottom:4px}
+    .metric strong{font-size:1.4rem}
+    .controls{grid-column:span 1;display:flex;gap:8px;align-items:center;justify-content:flex-end}
+    .btn{
+      border:0;border-radius:12px;padding:10px 13px;font-weight:800;cursor:pointer;transition:.18s transform,.18s box-shadow,.18s opacity;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    .btn-primary{color:#fff;background:var(--accent);box-shadow:0 8px 18px rgba(37,99,235,.25)}
+    .btn-secondary{color:var(--ink);background:#eef2f7}
+    .btn-danger{color:#991b1b;background:#fee2e2}
+    .status{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;border:1px solid var(--line);
+      padding:12px 16px;border-radius:16px;margin-bottom:18px;box-shadow:0 6px 18px rgba(15,23,42,.04)
+    }
+    .status-message{font-weight:750}
+    .progress{height:10px;flex:1;max-width:430px;background:#e8eef5;border-radius:999px;overflow:hidden}
+    .progress > span{display:block;height:100%;width:0;background:linear-gradient(90deg,#2563eb,#7c3aed);transition:width .25s ease}
+    .game-grid{display:grid;grid-template-columns:minmax(320px,.9fr) minmax(620px,1.6fr);gap:18px;align-items:start}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+    .panel-header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .panel-header h2{margin:0;font-size:1.12rem}
+    .panel-header p{margin:3px 0 0;color:var(--muted);font-size:.9rem}
+    .cards-pool{padding:14px;display:grid;gap:10px;max-height:660px;overflow:auto;min-height:340px}
+    .card{
+      border:1px solid #cfd9e5;border-left:5px solid var(--accent);border-radius:15px;padding:13px 14px;background:#fff;
+      box-shadow:0 6px 15px rgba(15,23,42,.06);cursor:grab;line-height:1.35;font-weight:650;user-select:none;
+      transition:.18s transform,.18s box-shadow,.18s border-color,.18s background;
+    }
+    .card:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(15,23,42,.10)}
+    .card.dragging{opacity:.45;transform:rotate(1deg)}
+    .card.selected{outline:3px solid rgba(37,99,235,.28);background:#eff6ff}
+    .card.correct{border-color:#86efac;border-left-color:var(--good);background:var(--good-soft)}
+    .card.incorrect{border-color:#fca5a5;border-left-color:var(--bad);background:var(--bad-soft)}
+    .card-number{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:999px;background:#eaf0f7;color:#334155;font-size:.78rem;margin-right:8px;vertical-align:middle}
+    .zones{padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .zone{
+      min-height:560px;border:2px dashed #cbd5e1;border-radius:18px;padding:12px;transition:.18s background,.18s border-color,.18s transform;
+    }
+    .zone.drag-over{transform:scale(1.008);border-color:var(--accent);background:#eff6ff}
+    .zone.problem{background:linear-gradient(180deg,var(--problem-soft),#fff 120px)}
+    .zone.symptom{background:linear-gradient(180deg,var(--symptom-soft),#fff 120px)}
+    .zone-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 4px 13px}
+    .zone-title{font-weight:900;font-size:1.08rem}
+    .problem .zone-title{color:var(--problem)}
+    .symptom .zone-title{color:var(--symptom)}
+    .zone-count{padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.75);font-weight:800;font-size:.82rem}
+    .zone-cards{display:grid;gap:9px;min-height:480px}
+    .zone .card{cursor:grab;font-size:.94rem}
+    .click-hint{display:none;color:var(--muted);font-size:.82rem;margin-top:6px}
+    .history-wrap{margin-top:18px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line)}
+    th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:#f8fafc}
+    td{font-size:.92rem}
+    .perfect{color:var(--good);font-weight:900}
+    .empty{color:var(--muted);text-align:center;padding:22px}
+    .modal{
+      position:fixed;inset:0;background:rgba(15,23,42,.58);display:none;place-items:center;padding:20px;z-index:20
+    }
+    .modal.show{display:grid}
+    .modal-card{width:min(560px,100%);background:#fff;border-radius:24px;padding:28px;box-shadow:0 24px 70px rgba(0,0,0,.25);text-align:center}
+    .modal-icon{font-size:3.4rem}
+    .modal-card h2{margin:8px 0 8px;font-size:2rem}
+    .modal-card p{color:var(--muted);line-height:1.55}
+    .modal-actions{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+    @media (max-width:1050px){
+      .game-grid{grid-template-columns:1fr}.cards-pool{max-height:none}.zone{min-height:430px}.zone-cards{min-height:350px}
+    }
+    @media (max-width:760px){
+      .app{padding:12px}.hero{padding:22px;flex-direction:column}.toolbar{grid-template-columns:1fr 1fr}.controls{grid-column:span 2;justify-content:stretch}.controls .btn{flex:1}
+      .zones{grid-template-columns:1fr}.zone{min-height:280px}.zone-cards{min-height:210px}.status{align-items:flex-start;flex-direction:column}.progress{max-width:none;width:100%}.click-hint{display:block}
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="hero">
+      <div>
+        <h1>Symptoms vs Problems</h1>
+        <p>Sort all 16 workplace statements into <strong>Problems (Underlying Causes)</strong> or <strong>Symptoms (Observable Effects)</strong>. Drag a card into a category, or select a card and then click a category.</p>
+      </div>
+      <div class="badge">Card Sorting Challenge</div>
+    </section>
+
+    <section class="toolbar" aria-label="Game information">
+      <div class="metric"><small>Round</small><strong id="roundValue">1</strong></div>
+      <div class="metric"><small>Timer</small><strong id="timerValue">00:00</strong></div>
+      <div class="metric"><small>Cards Sorted</small><strong><span id="sortedValue">0</span>/16</strong></div>
+      <div class="controls">
+        <button class="btn btn-secondary" id="randomiseBtn">Randomise</button>
+        <button class="btn btn-danger" id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <section class="status">
+      <div class="status-message" id="statusMessage">Start by sorting the cards into the two categories.</div>
+      <div class="progress" aria-label="Sorting progress"><span id="progressBar"></span></div>
+      <button class="btn btn-primary" id="checkBtn" disabled>Check Answers</button>
+    </section>
+
+    <section class="game-grid">
+      <article class="panel">
+        <div class="panel-header">
+          <div><h2>Unsorted Cards</h2><p>Drag or click to move each statement.</p></div>
+          <strong id="poolCount">16</strong>
+        </div>
+        <div class="cards-pool" id="cardPool" data-zone="pool"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <div><h2>Sorting Area</h2><p>Place every card before checking your answers.</p></div>
+          <span class="click-hint">Tap a card, then tap a category.</span>
+        </div>
+        <div class="zones">
+          <section class="zone problem" data-zone="problem" tabindex="0" aria-label="Problems category">
+            <div class="zone-head"><span class="zone-title">🧩 Problems</span><span class="zone-count" id="problemCount">0 cards</span></div>
+            <div class="zone-cards" id="problemZone"></div>
+          </section>
+          <section class="zone symptom" data-zone="symptom" tabindex="0" aria-label="Symptoms category">
+            <div class="zone-head"><span class="zone-title">🔎 Symptoms</span><span class="zone-count" id="symptomCount">0 cards</span></div>
+            <div class="zone-cards" id="symptomZone"></div>
+          </section>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel history-wrap">
+      <div class="panel-header">
+        <div><h2>Round History</h2><p>Your score and time are recorded after each completed check.</p></div>
+        <button class="btn btn-secondary" id="clearHistoryBtn">Clear History</button>
+      </div>
+      <div style="overflow:auto">
+        <table>
+          <thead><tr><th>Round</th><th>Score</th><th>Accuracy</th><th>Time</th><th>Result</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-card">
+      <div class="modal-icon" id="modalIcon">🎯</div>
+      <h2 id="modalTitle">Round Complete</h2>
+      <p id="modalText"></p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="nextRoundBtn">Try Another Round</button>
+        <button class="btn btn-secondary" id="reviewBtn">Review Cards</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const statements = [
+    { id: 1, text: 'There is no clear process for prioritising competing requests.', answer: 'problem' },
+    { id: 2, text: 'Customer complaints are increasing.', answer: 'symptom' },
+    { id: 3, text: 'Roles and responsibilities are unclear.', answer: 'problem' },
+    { id: 4, text: 'Employee turnover is high.', answer: 'symptom' },
+    { id: 5, text: 'Teams spend time fixing recurring issues repeatedly.', answer: 'symptom' },
+    { id: 6, text: 'Knowledge is concentrated in a few key individuals.', answer: 'problem' },
+    { id: 7, text: 'There is no common framework for decision-making across the organisation.', answer: 'problem' },
+    { id: 8, text: 'Employees frequently work late.', answer: 'symptom' },
+    { id: 9, text: 'Managers have limited visibility of team workload and capacity.', answer: 'problem' },
+    { id: 10, text: 'Different departments operate with conflicting priorities.', answer: 'problem' },
+    { id: 11, text: 'Staff report feeling overwhelmed and stressed.', answer: 'symptom' },
+    { id: 12, text: 'Projects are delivered behind schedule.', answer: 'symptom' },
+    { id: 13, text: 'Collaboration across departments is difficult.', answer: 'problem' },
+    { id: 14, text: 'Service quality is inconsistent.', answer: 'symptom' },
+    { id: 15, text: 'Operational errors are on the rise.', answer: 'symptom' },
+    { id: 16, text: 'Staff are reluctant to share information with other teams.', answer: 'problem' }
+  ];
+
+  const els = {
+    pool: document.getElementById('cardPool'), problem: document.getElementById('problemZone'), symptom: document.getElementById('symptomZone'),
+    round: document.getElementById('roundValue'), timer: document.getElementById('timerValue'), sorted: document.getElementById('sortedValue'),
+    poolCount: document.getElementById('poolCount'), problemCount: document.getElementById('problemCount'), symptomCount: document.getElementById('symptomCount'),
+    progress: document.getElementById('progressBar'), status: document.getElementById('statusMessage'), check: document.getElementById('checkBtn'),
+    randomise: document.getElementById('randomiseBtn'), reset: document.getElementById('resetBtn'), clearHistory: document.getElementById('clearHistoryBtn'),
+    history: document.getElementById('historyBody'), modal: document.getElementById('resultModal'), modalIcon: document.getElementById('modalIcon'),
+    modalTitle: document.getElementById('modalTitle'), modalText: document.getElementById('modalText'), nextRound: document.getElementById('nextRoundBtn'), review: document.getElementById('reviewBtn')
+  };
+
+  let round = 1, seconds = 0, timerId = null, selectedCard = null, roundChecked = false;
+  let history = JSON.parse(localStorage.getItem('symptomsProblemsHistory') || '[]');
+
+  const shuffle = arr => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  };
+  const formatTime = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+
+  function startTimer(){
+    clearInterval(timerId);
+    timerId = setInterval(() => { seconds++; els.timer.textContent = formatTime(seconds); }, 1000);
+  }
+  function stopTimer(){ clearInterval(timerId); }
+
+  function makeCard(item){
+    const card = document.createElement('div');
+    card.className = 'card'; card.draggable = true; card.dataset.id = item.id;
+    card.innerHTML = `<span class="card-number">${item.id}</span>${item.text}`;
+    card.addEventListener('dragstart', e => { selectedCard = card; card.classList.add('dragging'); e.dataTransfer.setData('text/plain', item.id); });
+    card.addEventListener('dragend', () => card.classList.remove('dragging'));
+    card.addEventListener('click', e => { e.stopPropagation(); selectCard(card); });
+    return card;
+  }
+
+  function selectCard(card){
+    document.querySelectorAll('.card.selected').forEach(c => c.classList.remove('selected'));
+    if (selectedCard === card) { selectedCard = null; return; }
+    selectedCard = card; card.classList.add('selected');
+    els.status.textContent = 'Card selected. Click Problems or Symptoms to place it.';
+  }
+
+  function moveCard(card, zone){
+    if (!card || roundChecked) return;
+    card.classList.remove('selected','correct','incorrect');
+    (zone === 'problem' ? els.problem : zone === 'symptom' ? els.symptom : els.pool).appendChild(card);
+    selectedCard = null;
+    updateCounts();
+  }
+
+  function setDropZone(zoneEl, zoneName){
+    zoneEl.addEventListener('dragover', e => { e.preventDefault(); zoneEl.classList.add('drag-over'); });
+    zoneEl.addEventListener('dragleave', () => zoneEl.classList.remove('drag-over'));
+    zoneEl.addEventListener('drop', e => { e.preventDefault(); zoneEl.classList.remove('drag-over'); const card = document.querySelector(`.card[data-id="${e.dataTransfer.getData('text/plain')}"]`); moveCard(card, zoneName); });
+    zoneEl.addEventListener('click', () => { if (selectedCard) moveCard(selectedCard, zoneName); });
+  }
+
+  setDropZone(document.querySelector('.zone.problem'), 'problem');
+  setDropZone(document.querySelector('.zone.symptom'), 'symptom');
+  setDropZone(els.pool, 'pool');
+
+  function updateCounts(){
+    const p = els.problem.children.length, s = els.symptom.children.length, sorted = p+s;
+    els.sorted.textContent = sorted; els.poolCount.textContent = statements.length-sorted;
+    els.problemCount.textContent = `${p} card${p===1?'':'s'}`; els.symptomCount.textContent = `${s} card${s===1?'':'s'}`;
+    els.progress.style.width = `${sorted/statements.length*100}%`;
+    els.check.disabled = sorted !== statements.length || roundChecked;
+    if (!roundChecked) els.status.textContent = sorted === statements.length ? 'All cards placed. Check your answers when ready.' : `${statements.length-sorted} card${statements.length-sorted===1?'':'s'} remaining.`;
+  }
+
+  function renderRound(increment=false){
+    if (increment) round++;
+    roundChecked = false; selectedCard = null; seconds = 0;
+    els.round.textContent = round; els.timer.textContent = '00:00';
+    [els.pool,els.problem,els.symptom].forEach(el => el.innerHTML='');
+    shuffle(statements).forEach(item => els.pool.appendChild(makeCard(item)));
+    els.status.textContent = 'Start by sorting the cards into the two categories.';
+    updateCounts(); startTimer();
+  }
+
+  function checkAnswers(){
+    if (roundChecked) return;
+    stopTimer(); roundChecked = true;
+    let score = 0;
+    ['problem','symptom'].forEach(zone => {
+      const container = zone === 'problem' ? els.problem : els.symptom;
+      [...container.children].forEach(card => {
+        const item = statements.find(s => s.id === Number(card.dataset.id));
+        const correct = item.answer === zone;
+        card.classList.add(correct ? 'correct' : 'incorrect');
+        if (correct) score++;
+      });
+    });
+    const accuracy = Math.round(score/statements.length*100);
+    const perfect = score === statements.length;
+    history.push({round,score,accuracy,seconds,perfect,date:new Date().toISOString()});
+    localStorage.setItem('symptomsProblemsHistory', JSON.stringify(history));
+    renderHistory();
+    els.status.textContent = perfect ? 'Perfect score! Every card is correct.' : `${score} correct. Review the red cards, then try another round.`;
+    els.check.disabled = true;
+    els.modalIcon.textContent = perfect ? '🏆' : '🎯';
+    els.modalTitle.textContent = perfect ? 'Excellent — All Correct!' : 'Round Complete';
+    els.modalText.innerHTML = `You scored <strong>${score}/16 (${accuracy}%)</strong> in <strong>${formatTime(seconds)}</strong>. ${perfect ? 'You successfully distinguished every underlying problem from its observable symptom.' : 'Correct cards are shown in green; cards needing correction are shown in red.'}`;
+    els.nextRound.textContent = perfect ? 'Play Again' : 'Try Another Round';
+    els.modal.classList.add('show');
+  }
+
+  function renderHistory(){
+    if (!history.length){ els.history.innerHTML = '<tr><td colspan="5" class="empty">No completed rounds yet.</td></tr>'; return; }
+    els.history.innerHTML = history.map(h => `<tr><td>${h.round}</td><td class="${h.perfect?'perfect':''}">${h.score}/16</td><td>${h.accuracy}%</td><td>${formatTime(h.seconds)}</td><td>${h.perfect?'🏆 All correct':'Keep practising'}</td></tr>`).join('');
+  }
+
+  els.check.addEventListener('click', checkAnswers);
+  els.randomise.addEventListener('click', () => {
+    if (roundChecked) return;
+    const cards = shuffle([...els.pool.children]);
+    cards.forEach(c => els.pool.appendChild(c));
+    els.status.textContent = 'The remaining unsorted cards have been randomised.';
+  });
+  els.reset.addEventListener('click', () => renderRound(false));
+  els.clearHistory.addEventListener('click', () => { history=[]; localStorage.removeItem('symptomsProblemsHistory'); round=1; els.round.textContent=round; renderHistory(); });
+  els.nextRound.addEventListener('click', () => { els.modal.classList.remove('show'); renderRound(true); });
+  els.review.addEventListener('click', () => els.modal.classList.remove('show'));
+  els.modal.addEventListener('click', e => { if(e.target===els.modal) els.modal.classList.remove('show'); });
+
+  renderHistory(); renderRound(false);
+})();
+</script>
+</body>
+</html>
